@@ -99,15 +99,22 @@ function generateShift({ year, month, groups, ng, settings }) {
     return cnt;
   };
 
-  // 連勤ペナルティ付きソート（3連勤はブロック）
-  const sortCands = (cands, d, cntA, cntB) =>
-    cands
-      .filter(s => consecBefore(s, d) < 2)
-      .sort((a, b) => {
-        const diff = consecBefore(a, d) - consecBefore(b, d);
-        if (diff) return diff;
-        return cntA[a] - cntA[b] || cntB[a] - cntB[b] || Math.random() - 0.5;
-      });
+  // 連勤ペナルティ付きソート（3連勤はブロック、合計誤差±2まで・やむを得ず±3まで）
+  const sortCands = (cands, d, cntA, cntB) => {
+    const consecOk = cands.filter(s => consecBefore(s, d) < 2);
+    if (consecOk.length === 0) return [];
+
+    const globalMin = Math.min(...allStaff.map(s => totCnt[s]));
+    let pool = consecOk.filter(s => totCnt[s] <= globalMin + 2);
+    if (pool.length === 0) pool = consecOk.filter(s => totCnt[s] <= globalMin + 3);
+    if (pool.length === 0) pool = consecOk;
+
+    return pool.sort((a, b) => {
+      const diff = consecBefore(a, d) - consecBefore(b, d);
+      if (diff) return diff;
+      return cntA[a] - cntA[b] || cntB[a] - cntB[b] || Math.random() - 0.5;
+    });
+  };
 
   const pickRnd = arr => arr.length ? arr[Math.floor(Math.random() * arr.length)] : null;
 
